@@ -1,0 +1,84 @@
+using System;
+
+namespace Parcial3App
+{
+    // 1. Clase abstracta 
+    public abstract class Figura
+    {
+        public abstract string Nombre { get; }
+        public abstract double CalcularArea();
+        public abstract double CalcularPerimetro();
+    }
+
+    // 2. Cuadrado
+    public class Cuadrado : Figura
+    {
+        public double Lado { get; set; }
+        public override string Nombre => "Cuadrado";
+
+        public Cuadrado(double lado) => Lado = lado;
+
+        public override double CalcularArea() => Lado * Lado;
+        public override double CalcularPerimetro() => 4 * Lado;
+    }
+
+    // 2. Rectangulo
+    public class Rectangulo : Figura
+    {
+        public double BaseRect { get; set; }
+        public double Altura { get; set; }
+        public override string Nombre => "Rectángulo";
+
+        public Rectangulo(double baseRect, double altura)
+        {
+            BaseRect = baseRect;
+            Altura = altura;
+        }
+
+        public override double CalcularArea() => BaseRect * Altura;
+        public override double CalcularPerimetro() => 2 * (BaseRect + Altura);
+    }
+
+    // 2.  Triangulo 
+    public class Triangulo : Figura
+    {
+        public double BaseTri { get; set; }
+        public double Altura { get; set; }
+        public double Lado { get; set; }
+        public override string Nombre => "Triángulo";
+
+        public Triangulo(double baseTri, double altura, double lado)
+        {
+            BaseTri = baseTri;
+            Altura = altura;
+            Lado = lado;
+        }
+
+        public override double CalcularArea() => (BaseTri * Altura) / 2;
+        public override double CalcularPerimetro() => Lado * 3;
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // 3. Arreglo unidimensional de tipo padre
+            Figura[] figuras = new Figura[]
+            {
+                new Cuadrado(5.0),
+                new Rectangulo(4.0, 6.0),
+                new Triangulo(4.0, 5.0, 4.0)
+            };
+
+            // 4. Recorrido polimórfico
+            Console.WriteLine("--- RECORRIDO POLIMÓRFICO DE FIGURAS ---");
+            foreach (var fig in figuras)
+            {
+                Console.WriteLine($"Clase: {fig.Nombre}");
+                Console.WriteLine($"Área: {fig.CalcularArea():F2}");
+                Console.WriteLine($"Perímetro: {fig.CalcularPerimetro():F2}");
+                Console.WriteLine("-----------------------------------");
+            }
+        }
+    }
+}
