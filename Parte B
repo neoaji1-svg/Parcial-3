@@ -1,0 +1,22 @@
+using System;
+using Newtonsoft.Json;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        //Crear objeto con los datos solicitados
+        var persona = new
+        {
+            Nombre = "Cristell",
+            Edad = 20,
+            Carrera = "Ingeniería en Sistemas"
+        };
+
+        //Convertir el objeto a una cadena en formato JSON
+        string json = JsonConvert.SerializeObject(persona);
+
+        // Mostrar el resultado en la consola
+        Console.WriteLine(json);
+    }
+}
