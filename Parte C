@@ -1,0 +1,134 @@
+using System;
+using System.Windows.Forms;
+using MySql.Data.MySqlClient;
+using BCrypt.Net;
+
+namespace Parcial3_Login
+{
+    public partial class Form1 : Form
+    {
+    
+        private string conexionString = "Server=localhost;Database=Parcial3DB;Uid=root;Pwd=Cereal123;";
+
+        public Form1()
+        {
+            InitializeComponent();
+
+            // Al abrir la aplicación, creamos un usuario por defecto ('cristell') de forma automática cifrado con BCrypt
+            CrearUsuarioPorDefectoSiNoExiste();
+        }
+
+        private void CrearUsuarioPorDefectoSiNoExiste()
+        {
+            try
+            {
+                using (MySqlConnection conexion = new MySqlConnection(conexionString))
+                {
+                    conexion.Open();
+                    string queryCheck = "SELECT COUNT(*) FROM Usuarios WHERE Usuario = 'cristell'";
+                    using (MySqlCommand cmdCheck = new MySqlCommand(queryCheck, conexion))
+                    {
+                        long count = (long)cmdCheck.ExecuteScalar();
+
+                        if (count == 0)
+                        {
+                            string passwordPlano = "Seguridad2026*";
+                            // Generamos el hash automáticamente con BCrypt
+                            string passwordHashGenerado = BCrypt.Net.BCrypt.HashPassword(passwordPlano);
+
+                            string queryInsert = "INSERT INTO Usuarios (Usuario, PasswordHash) VALUES ('cristell', @Hash)";
+                            using (MySqlCommand cmdInsert = new MySqlCommand(queryInsert, conexion))
+                            {
+                                cmdInsert.Parameters.AddWithValue("@Hash", passwordHashGenerado);
+                                cmdInsert.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al inicializar el usuario automático: " + ex.Message, "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void btnLogin_Click(object sender, EventArgs e)
+        {
+            string usuarioIngresado = txtUsuario.Text.Trim();
+            string passwordIngresado = txtPassword.Text;
+
+            if (string.IsNullOrEmpty(usuarioIngresado) || string.IsNullOrEmpty(passwordIngresado))
+            {
+                MessageBox.Show("Por favor, complete todos los campos.", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                using (MySqlConnection conexion = new MySqlConnection(conexionString))
+                {
+                    conexion.Open();
+
+                    // Consultamos el Hash almacenado para el usuario ingresado
+                    string query = "SELECT PasswordHash FROM Usuarios WHERE Usuario = @Usuario";
+                    using (MySqlCommand cmd = new MySqlCommand(query, conexion))
+                    {
+                        cmd.Parameters.AddWithValue("@Usuario", usuarioIngresado);
+                        object resultado = cmd.ExecuteScalar();
+
+                        if (resultado != null)
+                        {
+                            string hashAlmacenado = resultado.ToString();
+
+                            // Verificamos la contraseña con BCrypt
+                            bool esValida = BCrypt.Net.BCrypt.Verify(passwordIngresado, hashAlmacenado);
+
+                            if (esValida)
+                            {
+                                MessageBox.Show($"¡Acceso Exitoso!\nBienvenida al sistema, {usuarioIngresado}.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                RegistrarIntento(usuarioIngresado, "Exitoso");
+                            }
+                            else
+                            {
+                                MessageBox.Show("Contraseña incorrecta.", "Error de autenticación", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                RegistrarIntento(usuarioIngresado, "Fallido");
+                            }
+                        }
+                        else
+                        {
+                            MessageBox.Show("El usuario no existe.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            RegistrarIntento(usuarioIngresado, "Fallido");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error de conexión con la base de datos MySQL: " + ex.Message, "Error Crítico", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Método para registrar la auditoría en la tabla 'IntentosLogin'
+        private void RegistrarIntento(string usuario, string estado)
+        {
+            try
+            {
+                using (MySqlConnection conexion = new MySqlConnection(conexionString))
+                {
+                    conexion.Open();
+                    string query = "INSERT INTO IntentosLogin (Usuario, Estado, Fecha) VALUES (@Usuario, @Estado, NOW())";
+                    using (MySqlCommand cmd = new MySqlCommand(query, conexion))
+                    {
+                        cmd.Parameters.AddWithValue("@Usuario", usuario);
+                        cmd.Parameters.AddWithValue("@Estado", estado);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Manejo silencioso si ocurre un fallo en el log
+            }
+        }
+    }
+}
